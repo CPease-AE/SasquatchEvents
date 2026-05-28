@@ -220,16 +220,18 @@ function renderClubFeed() {
     (a) => a.sport_type === "Ride" || a.sport_type === "GravelRide" || a.sport_type === "VirtualRide" || a.type === "Ride"
   );
 
-  const totalDistMi = (
-    rides.reduce((s, a) => s + (a.distance || 0), 0) / 1609.344
-  ).toFixed(0);
+  const totalDist   = rides.reduce((s, a) => s + (a.distance || 0), 0);
+  const totalDistMi = (totalDist / 1609.344).toFixed(0);
   const totalElevFt = Math.round(
     rides.reduce((s, a) => s + (a.total_elevation_gain || 0), 0) * 3.28084
   );
-  const totalSec = rides.reduce((s, a) => s + (a.moving_time || 0), 0);
-  const hours = Math.floor(totalSec / 3600);
-  const mins  = Math.floor((totalSec % 3600) / 60);
-  const timeStr = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+  const totalSec  = rides.reduce((s, a) => s + (a.moving_time || 0), 0);
+  const hours     = Math.floor(totalSec / 3600);
+  const mins      = Math.floor((totalSec % 3600) / 60);
+  const timeStr   = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+  const avgSpeedMph = totalSec > 0
+    ? ((totalDist / 1609.344) / (totalSec / 3600)).toFixed(1)
+    : null;
 
   const rows = rides
     .slice(0, 20)
@@ -240,11 +242,20 @@ function renderClubFeed() {
       );
       const distMi  = (a.distance / 1609.344).toFixed(1);
       const elevFt  = Math.round((a.total_elevation_gain || 0) * 3.28084);
+      const speed   = a.moving_time > 0
+        ? ((a.distance / 1609.344) / (a.moving_time / 3600)).toFixed(1)
+        : null;
+      const emoji = rideEmoji(a);
+      const meta = [
+        `${distMi} mi`,
+        speed ? `${speed} mph` : null,
+        `${elevFt.toLocaleString()} ft`,
+      ].filter(Boolean).join(" · ");
       return `
         <li class="cf-row">
           <span class="cf-athlete">${athlete}</span>
-          <span class="cf-name">${name}</span>
-          <span class="cf-meta">${distMi} mi · ${elevFt.toLocaleString()} ft</span>
+          <span class="cf-name"><span aria-hidden="true">${emoji}</span> ${name}</span>
+          <span class="cf-meta">${meta}</span>
         </li>`;
     })
     .join("");
@@ -263,6 +274,7 @@ function renderClubFeed() {
         <div class="cf-stats">
           <span><strong>${rides.length}</strong> rides</span>
           <span><strong>${Number(totalDistMi).toLocaleString()}</strong> mi</span>
+          ${avgSpeedMph ? `<span><strong>${avgSpeedMph}</strong> mph avg</span>` : ""}
           <span><strong>${totalElevFt.toLocaleString()}</strong> ft</span>
           <span><strong>${timeStr}</strong></span>
         </div>
@@ -270,6 +282,17 @@ function renderClubFeed() {
       <ul class="cf-list">${rows}</ul>
       ${more}
     </section>`;
+}
+
+// ── Strava helpers ────────────────────────────────────
+
+function rideEmoji(activity) {
+  const t = activity.sport_type || activity.type || "";
+  if (t === "MountainBikeRide" || t === "EMountainBikeRide") return "🚵";
+  if (t === "GravelRide")  return "🪨";
+  if (t === "VirtualRide") return "🖥️";
+  if (t === "EBikeRide")   return "⚡";
+  return "🚴"; // Ride / fallback
 }
 
 // ── Strava hashtag matching ───────────────────────────
@@ -323,16 +346,18 @@ function buildCardStravaSection(ev, isPast) {
       </div>`;
   }
 
-  const totalDistMi = (
-    matches.reduce((s, a) => s + (a.distance || 0), 0) / 1609.344
-  ).toFixed(1);
-  const totalElevFt = Math.round(
+  const totalDist    = matches.reduce((s, a) => s + (a.distance || 0), 0);
+  const totalDistMi  = (totalDist / 1609.344).toFixed(1);
+  const totalElevFt  = Math.round(
     matches.reduce((s, a) => s + (a.total_elevation_gain || 0), 0) * 3.28084
   );
-  const totalSec = matches.reduce((s, a) => s + (a.moving_time || 0), 0);
-  const hrs  = Math.floor(totalSec / 3600);
-  const mins = Math.floor((totalSec % 3600) / 60);
-  const timeStr = hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`;
+  const totalSec  = matches.reduce((s, a) => s + (a.moving_time || 0), 0);
+  const hrs       = Math.floor(totalSec / 3600);
+  const mins      = Math.floor((totalSec % 3600) / 60);
+  const timeStr   = hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`;
+  const avgSpeedMph = totalSec > 0
+    ? ((totalDist / 1609.344) / (totalSec / 3600)).toFixed(1)
+    : null;
 
   const rows = matches.map((a) => {
     const name    = escapeHtml(a.name || "Activity");
@@ -340,11 +365,15 @@ function buildCardStravaSection(ev, isPast) {
       `${a.athlete?.firstname || ""} ${a.athlete?.lastname || ""}`.trim() || "Member"
     );
     const distMi = (a.distance / 1609.344).toFixed(1);
+    const speed  = a.moving_time > 0
+      ? ((a.distance / 1609.344) / (a.moving_time / 3600)).toFixed(1)
+      : null;
+    const emoji = rideEmoji(a);
     return `
       <li class="ev-strava-row">
         <span class="ev-strava-athlete">${athlete}</span>
-        <span class="ev-strava-name">${name}</span>
-        <span class="ev-strava-dist">${distMi} mi</span>
+        <span class="ev-strava-name"><span aria-hidden="true">${emoji}</span> ${name}</span>
+        <span class="ev-strava-dist">${[distMi + " mi", speed ? speed + " mph" : null].filter(Boolean).join(" · ")}</span>
       </li>`;
   }).join("");
 
@@ -357,6 +386,7 @@ function buildCardStravaSection(ev, isPast) {
         <div class="ev-strava-stats">
           <span><strong>${matches.length}</strong> ${matches.length === 1 ? "rider" : "riders"}</span>
           <span><strong>${totalDistMi}</strong> mi</span>
+          ${avgSpeedMph ? `<span><strong>${avgSpeedMph}</strong> mph avg</span>` : ""}
           <span><strong>${totalElevFt.toLocaleString()}</strong> ft</span>
           <span><strong>${timeStr}</strong></span>
         </div>
