@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sasquatch Events</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <header>
+    <img id="group-avatar" class="group-avatar" src="logo.png" alt="Sasquatch Squadron logo" />
+    <div>
+      <div class="site-title">Sasquatch Squadron</div>
+      <div class="site-tagline" id="group-name">Events</div>
+    </div>
+  </header>
+
+  <nav>
+    <button id="btn-upcoming" class="active">Upcoming</button>
+    <button id="btn-past">Past</button>
+  </nav>
+
+  <main>
+    <div id="events-container"></div>
+  </main>
+
+  <footer>
+    <p>Sasquatch Squadron &mdash; <span id="footer-group-name">Events</span></p>
+    <p>&copy; <span id="year"></span> &mdash; Powered by <a href="https://groupme.com" target="_blank" rel="noopener noreferrer">GroupMe</a></p>
+  </footer>
+
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
+  <script src="app.js"></script>
+
+</body>
+</html>
